@@ -12,6 +12,11 @@ x-op-image: &image
   image: openproject/openproject:${TAG:-17-slim}
 x-op-app: &app
   <<: [*image, *restart_policy]
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "3"
   environment:
     OPENPROJECT_HTTPS: "${OPENPROJECT_HTTPS:-true}"
     OPENPROJECT_HOST__NAME: "${OPENPROJECT_HOST__NAME:-localhost:8080}"
@@ -30,6 +35,9 @@ x-op-app: &app
     SECRET_KEY_BASE: "${SECRET_KEY_BASE:-OVERWRITE_ME}"
   volumes:
     - "${OPDATA:-opdata}:/var/openproject/assets"
+    - "./openproject/frontend-assets/frontend:/app/public/assets/frontend"
+    - "./openproject/config/frontend_assets.manifest.json:/app/config/frontend_assets.manifest.json"
+    - "./openproject/overrides/live_users_component.html.erb:/app/modules/documents/app/components/documents/show_edit_view/page_header/live_users_component.html.erb"
 
 services:
   db:
@@ -130,3 +138,10 @@ services:
       - backend
       - frontend
     <<: *restart_policy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+
