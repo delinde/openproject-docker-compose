@@ -48,18 +48,14 @@
           concat(
             render Primer::Beta::Text.new(color: :muted) { active_editors }
           )
-          # ── Verfasserstift-Icon (SVG, kein externer Datei-Pfad nötig) ─────────
+          # ── Verfasserstift-Icon ────────────────────────────────────────────────
           concat(
-            (
-              '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"' \
-              ' style="flex-shrink:0;pointer-events:none;" aria-label="Verfasserliste öffnen"' \
-              ' title="Verfasserliste öffnen">' \
-              '<g transform="rotate(-45,12,12)">' \
-              '<rect x="9" y="3" width="6" height="12" rx="2" fill="#666"/>' \
-              '<polygon points="9,15 15,15 12,19" fill="#444"/>' \
-              '<rect x="9" y="3" width="6" height="3" rx="2" fill="#bbb"/>' \
-              '</g></svg>'
-            ).html_safe
+            content_tag(:img, "",
+              src:   "/assets/frontend/assets/images/Verfasserstift.gif",
+              alt:   "Verfasserliste",
+              title: "Verfasserliste öffnen",
+              style: "width:20px;height:20px;flex-shrink:0;pointer-events:none;"
+            )
           )
           concat(
             render Primer::OpenProject::AvatarStack.new(
