@@ -39,6 +39,7 @@ x-op-app: &app
     - "./openproject/frontend-assets/frontend:/app/public/assets/frontend"
     - "./openproject/config/frontend_assets.manifest.json:/app/config/frontend_assets.manifest.json"
     - "./openproject/overrides/live_users_component.html.erb:/app/modules/documents/app/components/documents/show_edit_view/page_header/live_users_component.html.erb"
+    - "./openproject/public/Verfasserstift.gif:/app/public/assets/frontend/assets/images/Verfasserstift.gif"
 
 services:
   db:
