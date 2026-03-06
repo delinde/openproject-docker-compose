@@ -1,0 +1,172 @@
+<%#
+  -- copyright
+  OpenProject is an open source project management software.
+  Copyright (C) the OpenProject GmbH
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License version 3.
+
+  OpenProject is a fork of ChiliProject, which is a fork of Redmine. The copyright follows:
+  Copyright (C) 2006-2013 Jean-Philippe Lang
+  Copyright (C) 2010-2013 the ChiliProject Team
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+  See COPYRIGHT and LICENSE files for more details.
+  ++
+%>
+
+<%=
+  component_wrapper(
+    tag: "turbo-frame", refresh: :morph,
+    data: {
+      controller: "documents--live-events",
+      "test-selector": "live-events"
+    }
+  ) do
+    render Primer::BaseComponent.new(tag: :div, position: :relative) do
+
+      # ── Toggle-Zeile: Avatare + "N aktive Bearbeiter" ──────────────────────
+      concat(
+        render Primer::BaseComponent.new(
+          tag: :div,
+          style: "display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; background-color:#ccc; border-radius:6px; padding:4px 8px;",
+          data: { action: "click->documents--live-events#toggle_popover" }
+        ) do
+          concat(
+            render Primer::Beta::Text.new(color: :muted) { active_editors }
+          )
+          # ── Verfasserstift-Icon (SVG, kein externer Datei-Pfad nötig) ─────────
+          concat(
+            (
+              '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"' \
+              ' style="flex-shrink:0;pointer-events:none;" aria-label="Verfasserliste öffnen"' \
+              ' title="Verfasserliste öffnen">' \
+              '<g transform="rotate(-45,12,12)">' \
+              '<rect x="9" y="3" width="6" height="12" rx="2" fill="#666"/>' \
+              '<polygon points="9,15 15,15 12,19" fill="#444"/>' \
+              '<rect x="9" y="3" width="6" height="3" rx="2" fill="#bbb"/>' \
+              '</g></svg>'
+            ).html_safe
+          )
+          concat(
+            render Primer::OpenProject::AvatarStack.new(
+              data: { "documents--live-events-target": "users" }
+            ) do |component|
+              users.map { |user| component.with_avatar_with_fallback(**avatar_options_for(user)) }
+            end
+          )
+        end
+      )
+
+      # ── Dropdown-Panel ─────────────────────────────────────────────────────
+      # data-turbo-permanent: verhindert, dass Turbo-Stream-Updates den open/closed-Zustand
+      # zurücksetzen. Die Benutzerliste wird bis zum TypeScript-Build nur beim ersten Laden
+      # befüllt; danach übernimmt der Stimulus-Controller die Live-Aktualisierung.
+      concat(
+        render Primer::BaseComponent.new(
+          tag: :div,
+          display: :none,
+          id: "live-users-author-panel",
+          data: {
+            "documents--live-events-target": "popover",
+            "turbo-permanent": "true"
+          },
+          style: "position:fixed; z-index:200; top:0; left:0;
+                  background:#fdfcfb; border:2px solid #b8a898; border-radius:8px;
+                  padding:8px 14px 12px; min-width:260px;
+                  box-shadow:0 4px 16px rgba(100,80,60,0.18);"
+        ) do
+
+          # Anfasserleiste (Drag-Handle) oben
+          concat content_tag(:div, "".html_safe,
+            title: "Verschieben",
+            style: "cursor:grab; width:40px; height:10px; margin:0 auto 6px;
+                    background-image:radial-gradient(circle,#c8b4a0 1.5px,transparent 1.5px);
+                    background-size:8px 5px;",
+            data: { action: "mousedown->documents--live-events#startDrag" }
+          )
+
+          # Kopfzeile: "Verfasserliste" + ✕-Schaltknopf
+          concat(content_tag(:div,
+            style: "display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"
+          ) do
+            concat content_tag(:span, "Verfasserliste",
+              style: "font-size:13px; font-weight:600; color:#555;"
+            )
+            concat content_tag(:button,
+              "✕".html_safe,
+              type: "button",
+              style: "background:none; border:none; cursor:pointer; padding:0 4px;
+                      font-size:15px; line-height:1; color:#888;",
+              data: { action: "click->documents--live-events#toggle_popover" }
+            )
+          end)
+
+          # Trennlinie
+          concat content_tag(:hr, "", style: "margin:0 0 10px; border:none; border-top:1px solid #e8e0d8;")
+
+          # Benutzerliste mit Farb-Swatch (Server-seitig; TypeScript-Build aktualisiert live)
+          concat(content_tag(:div, id: "live-users-list") do
+            users.map do |user|
+              content_tag(:div,
+                style: "display:flex; align-items:center; gap:8px; margin-bottom:8px;"
+              ) do
+                concat render(Primer::OpenProject::AvatarWithFallback.new(**avatar_options_for(user)))
+                concat content_tag(:span, user.name,
+                  style: "flex:1; font-size:13px; color:#444; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                )
+                # Farb-Swatch: wird vom TypeScript-Controller mit echter Awareness-Farbe befüllt
+                concat content_tag(:span, "",
+                  title: I18n.t("documents.change_author_color", default: "Texthervorhebungsfarbe ändern"),
+                  style: "display:inline-block; width:22px; height:22px; border-radius:4px;
+                          background:#cccccc; cursor:pointer; border:1px solid #bbb; flex-shrink:0;",
+                  data: {
+                    "documents--live-events-target": "colorSwatch",
+                    "user-id": user.id.to_s,
+                    action: "click->documents--live-events#openColorPicker"
+                  }
+                )
+              end
+            end.join.html_safe
+          end)
+
+          # Trennlinie + "Auswahl entfärben"-Schaltknopf
+          concat content_tag(:hr, "", style: "margin:8px 0; border:none; border-top:1px solid #e8e0d8;")
+          concat content_tag(:button,
+            I18n.t("documents.clear_selection_colors", default: "✕ Auswahl entfärben").html_safe,
+            type: "button",
+            style: "background:none; border:1px solid #c0392b; border-radius:4px;
+                    color:#c0392b; cursor:pointer; padding:4px 10px; font-size:12px;",
+            data: { action: "click->documents--live-events#clearSelectionColors" }
+          )
+          # + Mitschreiber einladen – auskommentiert, kommt später
+          # if false
+          #   concat content_tag(:button,
+          #     "+ Mitschreiber einladen",
+          #     type: "button",
+          #     style: "display:block; width:100%; margin-top:8px; padding:6px 12px;
+          #             background:#27ae60; color:#fff; border:none; border-radius:4px;
+          #             cursor:pointer; font-size:12px; font-weight:600; text-align:center;",
+          #     data: { action: "click->documents--live-events#inviteCollaborator" }
+          #   )
+          # end
+
+        end
+      )
+
+    end
+  end
+%>
